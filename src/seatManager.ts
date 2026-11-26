@@ -101,6 +101,11 @@ export function reserveSeat(
   row: number,
   column: number
 ): string {
+  // Fractions and NaN would pass the range checks below
+  if (!Number.isInteger(row) || !Number.isInteger(column)) {
+    return `Reservation FAILED: Row and column must be whole numbers.`;
+  }
+
   // Validate that the row is within bounds
   if (row < 0 || row >= seating.length) {
     return `Reservation FAILED: Row ${row} does not exist (valid rows are 0-${ROWS - 1}).`;
@@ -156,29 +161,16 @@ export function countSeats(seating: number[][]): {
 // JSON structure. If none are found, returns null so the caller
 // can report it clearly.
 export function findAdjacentAvailableSeats(
-  seating: number[][],
-  desiredPairSize: number = 2
+  seating: number[][]
 ): { row: number; firstColumn: number; secondColumn: number } | null {
   for (let rowIndex = 0; rowIndex < seating.length; rowIndex++) {
-    // Stop scanning a row when there aren't enough seats left
-    const lastStart = seating[rowIndex].length - desiredPairSize;
-
-    for (let colIndex = 0; colIndex <= lastStart; colIndex++) {
-      let pairAvailable = true;
-
-      // Check that all seats in the block are available
-      for (let offset = 0; offset < desiredPairSize; offset++) {
-        if (seating[rowIndex][colIndex + offset] !== 0) {
-          pairAvailable = false;
-          break;
-        }
-      }
-
-      if (pairAvailable) {
+    // Stop one seat early so colIndex + 1 stays inside the row
+    for (let colIndex = 0; colIndex < seating[rowIndex].length - 1; colIndex++) {
+      if (seating[rowIndex][colIndex] === 0 && seating[rowIndex][colIndex + 1] === 0) {
         return {
           row: rowIndex,
           firstColumn: colIndex,
-          secondColumn: colIndex + desiredPairSize - 1,
+          secondColumn: colIndex + 1,
         };
       }
     }
